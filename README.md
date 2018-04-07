@@ -8,7 +8,7 @@ apt install openssh-server ansible
 
 cd /root
 
-git clone https://github.com/bbaranoff/osmocom-ansible test
+git clone https://github.com/bbaranoff/osmocombb-ansible test
 
 cp /root/test/hosts /etc/ansible/hosts
 
@@ -26,6 +26,6 @@ if it answer pong you're good
 
 cd /root/test/
 
-ansible-playbook osmocom.yml
+ansible-playbook osmocombb.yml
 
 
