@@ -1,0 +1,386 @@
+diff --git a/drivers/isdn/hardware/mISDN/hfcpci.c b/drivers/isdn/hardware/mISDN/hfcpci.c
+index d2e401a8090e..e4ebbee863a1 100644
+--- a/drivers/isdn/hardware/mISDN/hfcpci.c
++++ b/drivers/isdn/hardware/mISDN/hfcpci.c
+@@ -2265,7 +2265,7 @@  static struct pci_driver hfc_driver = {
+ };
+ 
+ static int
+-_hfcpci_softirq(struct device *dev, void *arg)
++_hfcpci_softirq(struct device *dev, void *unused)
+ {
+ 	struct hfc_pci  *hc = dev_get_drvdata(dev);
+ 	struct bchannel *bch;
+@@ -2290,9 +2290,9 @@  _hfcpci_softirq(struct device *dev, void *arg)
+ }
+ 
+ static void
+-hfcpci_softirq(void *arg)
++hfcpci_softirq(struct timer_list *unused)
+ {
+-	WARN_ON_ONCE(driver_for_each_device(&hfc_driver.driver, NULL, arg,
++	WARN_ON_ONCE(driver_for_each_device(&hfc_driver.driver, NULL, NULL,
+ 				      _hfcpci_softirq) != 0);
+ 
+ 	/* if next event would be in the past ... */
+@@ -2327,9 +2327,7 @@  HFC_init(void)
+ 	if (poll != HFCPCI_BTRANS_THRESHOLD) {
+ 		printk(KERN_INFO "%s: Using alternative poll value of %d\n",
+ 		       __func__, poll);
+-		hfc_tl.function = (void *)hfcpci_softirq;
+-		hfc_tl.data = 0;
+-		init_timer(&hfc_tl);
++		timer_setup(&hfc_tl, hfcpci_softirq, 0);
+ 		hfc_tl.expires = jiffies + tics;
+ 		hfc_jiffies = hfc_tl.expires;
+ 		add_timer(&hfc_tl);
+
+diff --git a/drivers/isdn/hardware/mISDN/hfcmulti.c b/drivers/isdn/hardware/mISDN/hfcmulti.c
+index 3cf07b8ced1c..4d85645c87f7 100644
+--- a/drivers/isdn/hardware/mISDN/hfcmulti.c
++++ b/drivers/isdn/hardware/mISDN/hfcmulti.c
+@@ -2855,7 +2855,7 @@  hfcmulti_interrupt(int intno, void *dev_id)
+  */
+ 
+ static void
+-hfcmulti_dbusy_timer(struct hfc_multi *hc)
++hfcmulti_dbusy_timer(struct timer_list *t)
+ {
+ }
+ 
+@@ -3877,8 +3877,7 @@  hfcmulti_initmode(struct dchannel *dch)
+ 		if (hc->dnum[pt]) {
+ 			mode_hfcmulti(hc, dch->slot, dch->dev.D.protocol,
+ 				      -1, 0, -1, 0);
+-			setup_timer(&dch->timer, (void *)hfcmulti_dbusy_timer,
+-				    (long)dch);
++			timer_setup(&dch->timer, hfcmulti_dbusy_timer, 0);
+ 		}
+ 		for (i = 1; i <= 31; i++) {
+ 			if (!((1 << i) & hc->bmask[pt])) /* skip unused chan */
+@@ -3984,8 +3983,7 @@  hfcmulti_initmode(struct dchannel *dch)
+ 		hc->chan[i].slot_rx = -1;
+ 		hc->chan[i].conf = -1;
+ 		mode_hfcmulti(hc, i, dch->dev.D.protocol, -1, 0, -1, 0);
+-		setup_timer(&dch->timer, (void *)hfcmulti_dbusy_timer,
+-			    (long)dch);
++		timer_setup(&dch->timer, hfcmulti_dbusy_timer, 0);
+ 		hc->chan[i - 2].slot_tx = -1;
+ 		hc->chan[i - 2].slot_rx = -1;
+ 		hc->chan[i - 2].conf = -1;
+diff --git a/drivers/isdn/hardware/mISDN/hfcpci.c b/drivers/isdn/hardware/mISDN/hfcpci.c
+index e4ebbee863a1..34c93874af23 100644
+--- a/drivers/isdn/hardware/mISDN/hfcpci.c
++++ b/drivers/isdn/hardware/mISDN/hfcpci.c
+@@ -301,8 +301,9 @@  reset_hfcpci(struct hfc_pci *hc)
+  * Timer function called when kernel timer expires
+  */
+ static void
+-hfcpci_Timer(struct hfc_pci *hc)
++hfcpci_Timer(struct timer_list *t)
+ {
++	struct hfc_pci *hc = from_timer(hc, t, hw.timer);
+ 	hc->hw.timer.expires = jiffies + 75;
+ 	/* WD RESET */
+ /*
+@@ -1241,7 +1242,7 @@  hfcpci_int(int intno, void *dev_id)
+  * timer callback for D-chan busy resolution. Currently no function
+  */
+ static void
+-hfcpci_dbusy_timer(struct hfc_pci *hc)
++hfcpci_dbusy_timer(struct timer_list *t)
+ {
+ }
+ 
+@@ -1717,8 +1718,7 @@  static void
+ inithfcpci(struct hfc_pci *hc)
+ {
+ 	printk(KERN_DEBUG "inithfcpci: entered\n");
+-	setup_timer(&hc->dch.timer, (void *)hfcpci_dbusy_timer,
+-		    (long)&hc->dch);
++	timer_setup(&hc->dch.timer, hfcpci_dbusy_timer, 0);
+ 	hc->chanlimit = 2;
+ 	mode_hfcpci(&hc->bch[0], 1, -1);
+ 	mode_hfcpci(&hc->bch[1], 2, -1);
+@@ -2043,7 +2043,7 @@  setup_hw(struct hfc_pci *hc)
+ 	Write_hfc(hc, HFCPCI_INT_M1, hc->hw.int_m1);
+ 	/* At this point the needed PCI config is done */
+ 	/* fifos are still not enabled */
+-	setup_timer(&hc->hw.timer, (void *)hfcpci_Timer, (long)hc);
++	timer_setup(&hc->hw.timer, hfcpci_Timer, 0);
+ 	/* default PCM master */
+ 	test_and_set_bit(HFC_CFG_MASTER, &hc->cfg);
+ 	return 0;
+diff --git a/drivers/isdn/hardware/mISDN/mISDNisar.c b/drivers/isdn/hardware/mISDN/mISDNisar.c
+index 5b078591b6ee..b791688d0228 100644
+--- a/drivers/isdn/hardware/mISDN/mISDNisar.c
++++ b/drivers/isdn/hardware/mISDN/mISDNisar.c
+@@ -1146,9 +1146,9 @@  mISDNisar_irq(struct isar_hw *isar)
+ EXPORT_SYMBOL(mISDNisar_irq);
+ 
+ static void
+-ftimer_handler(unsigned long data)
++ftimer_handler(struct timer_list *t)
+ {
+-	struct isar_ch *ch = (struct isar_ch *)data;
++	struct isar_ch *ch = from_timer(ch, t, ftimer);
+ 
+ 	pr_debug("%s: ftimer flags %lx\n", ch->is->name, ch->bch.Flags);
+ 	test_and_clear_bit(FLG_FTI_RUN, &ch->bch.Flags);
+@@ -1635,11 +1635,9 @@  init_isar(struct isar_hw *isar)
+ 	}
+ 	if (isar->version != 1)
+ 		return -EINVAL;
+-	setup_timer(&isar->ch[0].ftimer, &ftimer_handler,
+-		    (long)&isar->ch[0]);
++	timer_setup(&isar->ch[0].ftimer, ftimer_handler, 0);
+ 	test_and_set_bit(FLG_INITIALIZED, &isar->ch[0].bch.Flags);
+-	setup_timer(&isar->ch[1].ftimer, &ftimer_handler,
+-		    (long)&isar->ch[1]);
++	timer_setup(&isar->ch[1].ftimer, ftimer_handler, 0);
+ 	test_and_set_bit(FLG_INITIALIZED, &isar->ch[1].bch.Flags);
+ 	return 0;
+ }
+diff --git a/drivers/isdn/hardware/mISDN/mISDNipac.c b/drivers/isdn/hardware/mISDN/mISDNipac.c
+index e240010b93fa..4d78f870435e 100644
+--- a/drivers/isdn/hardware/mISDN/mISDNipac.c
++++ b/drivers/isdn/hardware/mISDN/mISDNipac.c
+@@ -172,7 +172,6 @@ isac_fill_fifo(struct isac_hw *isac)
+ 		pr_debug("%s: %s dbusytimer running\n", isac->name, __func__);
+ 		del_timer(&isac->dch.timer);
+ 	}
+-	init_timer(&isac->dch.timer);
+ 	isac->dch.timer.expires = jiffies + ((DBUSY_TIMER_VALUE * HZ)/1000);
+ 	add_timer(&isac->dch.timer);
+ 	if (isac->dch.debug & DEBUG_HW_DFIFO) {
+@@ -727,8 +726,9 @@ isac_release(struct isac_hw *isac)
+ }
+ 
+ static void
+-dbusy_timer_handler(struct isac_hw *isac)
++dbusy_timer_handler(struct timer_list *t)
+ {
++	struct isac_hw *isac = from_timer(isac, t, dch.timer);
+ 	int rbch, star;
+ 	u_long flags;
+ 
+@@ -796,8 +796,7 @@ isac_init(struct isac_hw *isac)
+ 	}
+ 	isac->mon_tx = NULL;
+ 	isac->mon_rx = NULL;
+-	setup_timer(&isac->dch.timer, (void *)dbusy_timer_handler,
+-		    (long)isac);
++	timer_setup(&isac->dch.timer, dbusy_timer_handler, 0);
+ 	isac->mocr = 0xaa;
+ 	if (isac->type & IPAC_TYPE_ISACX) {
+ 		/* Disable all IRQ */
+diff --git a/drivers/isdn/hardware/mISDN/w6692.c b/drivers/isdn/hardware/mISDN/w6692.c
+index d80072fef434..536d5137f49d 100644
+--- a/drivers/isdn/hardware/mISDN/w6692.c
++++ b/drivers/isdn/hardware/mISDN/w6692.c
+@@ -311,7 +311,6 @@ W6692_fill_Dfifo(struct w6692_hw *card)
+ 		pr_debug("%s: fill_Dfifo dbusytimer running\n", card->name);
+ 		del_timer(&dch->timer);
+ 	}
+-	init_timer(&dch->timer);
+ 	dch->timer.expires = jiffies + ((DBUSY_TIMER_VALUE * HZ) / 1000);
+ 	add_timer(&dch->timer);
+ 	if (debug & DEBUG_HW_DFIFO) {
+@@ -819,8 +818,9 @@ w6692_irq(int intno, void *dev_id)
+ }
+ 
+ static void
+-dbusy_timer_handler(struct dchannel *dch)
++dbusy_timer_handler(struct timer_list *t)
+ {
++	struct dchannel *dch = from_timer(dch, t, timer);
+ 	struct w6692_hw	*card = dch->hw;
+ 	int		rbch, star;
+ 	u_long		flags;
+@@ -852,8 +852,7 @@ static void initW6692(struct w6692_hw *card)
+ {
+ 	u8	val;
+ 
+-	setup_timer(&card->dch.timer, (void *)dbusy_timer_handler,
+-		    (u_long)&card->dch);
++	timer_setup(&card->dch.timer, dbusy_timer_handler, 0);
+ 	w6692_mode(&card->bc[0], ISDN_P_NONE);
+ 	w6692_mode(&card->bc[1], ISDN_P_NONE);
+ 	WriteW6692(card, W_D_CTL, 0x00);
+diff --git a/drivers/isdn/mISDN/dsp.h b/drivers/isdn/mISDN/dsp.h
+index fc1733a08845..fa09d511a8ed 100644
+--- a/drivers/isdn/mISDN/dsp.h
++++ b/drivers/isdn/mISDN/dsp.h
+@@ -259,7 +259,7 @@ extern u8 *dsp_dtmf_goertzel_decode(struct dsp *dsp, u8 *data, int len,
+ 
+ extern int dsp_tone(struct dsp *dsp, int tone);
+ extern void dsp_tone_copy(struct dsp *dsp, u8 *data, int len);
+-extern void dsp_tone_timeout(void *arg);
++extern void dsp_tone_timeout(struct timer_list *t);
+ 
+ extern void dsp_bf_encrypt(struct dsp *dsp, u8 *data, int len);
+ extern void dsp_bf_decrypt(struct dsp *dsp, u8 *data, int len);
+diff --git a/drivers/isdn/mISDN/dsp_core.c b/drivers/isdn/mISDN/dsp_core.c
+index 880e9d367a39..cd036e87335a 100644
+--- a/drivers/isdn/mISDN/dsp_core.c
++++ b/drivers/isdn/mISDN/dsp_core.c
+@@ -1092,7 +1092,7 @@ dspcreate(struct channel_req *crq)
+ 	ndsp->pcm_bank_tx = -1;
+ 	ndsp->hfc_conf = -1; /* current conference number */
+ 	/* set tone timer */
+-	setup_timer(&ndsp->tone.tl, (void *)dsp_tone_timeout, (long)ndsp);
++	timer_setup(&ndsp->tone.tl, dsp_tone_timeout, 0);
+ 
+ 	if (dtmfthreshold < 20 || dtmfthreshold > 500)
+ 		dtmfthreshold = 200;
+@@ -1202,9 +1202,7 @@ static int __init dsp_init(void)
+ 	}
+ 
+ 	/* set sample timer */
+-	dsp_spl_tl.function = (void *)dsp_cmx_send;
+-	dsp_spl_tl.data = 0;
+-	init_timer(&dsp_spl_tl);
++	timer_setup(&dsp_spl_tl, (void *)dsp_cmx_send, 0);
+ 	dsp_spl_tl.expires = jiffies + dsp_tics;
+ 	dsp_spl_jiffies = dsp_spl_tl.expires;
+ 	add_timer(&dsp_spl_tl);
+diff --git a/drivers/isdn/mISDN/dsp_tones.c b/drivers/isdn/mISDN/dsp_tones.c
+index 057e0d6a369b..8389e2105cdc 100644
+--- a/drivers/isdn/mISDN/dsp_tones.c
++++ b/drivers/isdn/mISDN/dsp_tones.c
+@@ -457,9 +457,9 @@ dsp_tone_hw_message(struct dsp *dsp, u8 *sample, int len)
+  * timer expires *
+  *****************/
+ void
+-dsp_tone_timeout(void *arg)
++dsp_tone_timeout(struct timer_list *t)
+ {
+-	struct dsp *dsp = arg;
++	struct dsp *dsp = from_timer(dsp, t, tone.tl);
+ 	struct dsp_tone *tone = &dsp->tone;
+ 	struct pattern *pat = (struct pattern *)tone->pattern;
+ 	int index = tone->index;
+@@ -478,7 +478,6 @@ dsp_tone_timeout(void *arg)
+ 	else
+ 		dsp_tone_hw_message(dsp, pat->data[index], *(pat->siz[index]));
+ 	/* set timer */
+-	init_timer(&tone->tl);
+ 	tone->tl.expires = jiffies + (pat->seq[index] * HZ) / 8000;
+ 	add_timer(&tone->tl);
+ }
+@@ -541,7 +540,6 @@ dsp_tone(struct dsp *dsp, int tone)
+ 		/* set timer */
+ 		if (timer_pending(&tonet->tl))
+ 			del_timer(&tonet->tl);
+-		init_timer(&tonet->tl);
+ 		tonet->tl.expires = jiffies + (pat->seq[0] * HZ) / 8000;
+ 		add_timer(&tonet->tl);
+ 	} else {
+diff --git a/drivers/isdn/mISDN/fsm.c b/drivers/isdn/mISDN/fsm.c
+index 92e6570b1143..cabcb906e0b5 100644
+--- a/drivers/isdn/mISDN/fsm.c
++++ b/drivers/isdn/mISDN/fsm.c
+@@ -100,8 +100,9 @@ mISDN_FsmChangeState(struct FsmInst *fi, int newstate)
+ EXPORT_SYMBOL(mISDN_FsmChangeState);
+ 
+ static void
+-FsmExpireTimer(struct FsmTimer *ft)
++FsmExpireTimer(struct timer_list *t)
+ {
++	struct FsmTimer *ft = from_timer(ft, t, tl);
+ #if FSM_TIMER_DEBUG
+ 	if (ft->fi->debug)
+ 		ft->fi->printdebug(ft->fi, "FsmExpireTimer %lx", (long) ft);
+@@ -117,7 +118,7 @@ mISDN_FsmInitTimer(struct FsmInst *fi, struct FsmTimer *ft)
+ 	if (ft->fi->debug)
+ 		ft->fi->printdebug(ft->fi, "mISDN_FsmInitTimer %lx", (long) ft);
+ #endif
+-	setup_timer(&ft->tl, (void *)FsmExpireTimer, (long)ft);
++	timer_setup(&ft->tl, FsmExpireTimer, 0);
+ }
+ EXPORT_SYMBOL(mISDN_FsmInitTimer);
+ 
+@@ -153,7 +154,6 @@ mISDN_FsmAddTimer(struct FsmTimer *ft,
+ 		}
+ 		return -1;
+ 	}
+-	init_timer(&ft->tl);
+ 	ft->event = event;
+ 	ft->arg = arg;
+ 	ft->tl.expires = jiffies + (millisec * HZ) / 1000;
+@@ -175,7 +175,6 @@ mISDN_FsmRestartTimer(struct FsmTimer *ft,
+ 
+ 	if (timer_pending(&ft->tl))
+ 		del_timer(&ft->tl);
+-	init_timer(&ft->tl);
+ 	ft->event = event;
+ 	ft->arg = arg;
+ 	ft->tl.expires = jiffies + (millisec * HZ) / 1000;
+diff --git a/drivers/isdn/mISDN/l1oip_core.c b/drivers/isdn/mISDN/l1oip_core.c
+index 6be2041248d3..b5d590e378ac 100644
+--- a/drivers/isdn/mISDN/l1oip_core.c
++++ b/drivers/isdn/mISDN/l1oip_core.c
+@@ -842,17 +842,18 @@ l1oip_send_bh(struct work_struct *work)
+  * timer stuff
+  */
+ static void
+-l1oip_keepalive(void *data)
++l1oip_keepalive(struct timer_list *t)
+ {
+-	struct l1oip *hc = (struct l1oip *)data;
++	struct l1oip *hc = from_timer(hc, t, keep_tl);
+ 
+ 	schedule_work(&hc->workq);
+ }
+ 
+ static void
+-l1oip_timeout(void *data)
++l1oip_timeout(struct timer_list *t)
+ {
+-	struct l1oip			*hc = (struct l1oip *)data;
++	struct l1oip			*hc = from_timer(hc, t,
++								  timeout_tl);
+ 	struct dchannel		*dch = hc->chan[hc->d_idx].dch;
+ 
+ 	if (debug & DEBUG_L1OIP_MSG)
+@@ -1437,13 +1438,11 @@ init_card(struct l1oip *hc, int pri, int bundle)
+ 	if (ret)
+ 		return ret;
+ 
+-	hc->keep_tl.function = (void *)l1oip_keepalive;
+-	hc->keep_tl.data = (ulong)hc;
+-	init_timer(&hc->keep_tl);
++	timer_setup(&hc->keep_tl, l1oip_keepalive, 0);
+ 	hc->keep_tl.expires = jiffies + 2 * HZ; /* two seconds first time */
+ 	add_timer(&hc->keep_tl);
+ 
+-	setup_timer(&hc->timeout_tl, (void *)l1oip_timeout, (ulong)hc);
++	timer_setup(&hc->timeout_tl, l1oip_timeout, 0);
+ 	hc->timeout_on = 0; /* state that we have timer off */
+ 
+ 	return 0;
+diff --git a/drivers/isdn/mISDN/timerdev.c b/drivers/isdn/mISDN/timerdev.c
+index b1e135fc1fb5..c50a34340f67 100644
+--- a/drivers/isdn/mISDN/timerdev.c
++++ b/drivers/isdn/mISDN/timerdev.c
+@@ -162,9 +162,9 @@ mISDN_poll(struct file *filep, poll_table *wait)
+ }
+ 
+ static void
+-dev_expire_timer(unsigned long data)
++dev_expire_timer(struct timer_list *t)
+ {
+-	struct mISDNtimer *timer = (void *)data;
++	struct mISDNtimer *timer = from_timer(timer, t, tl);
+ 	u_long			flags;
+ 
+ 	spin_lock_irqsave(&timer->dev->lock, flags);
+@@ -189,7 +189,7 @@ misdn_add_timer(struct mISDNtimerdev *dev, int timeout)
+ 		if (!timer)
+ 			return -ENOMEM;
+ 		timer->dev = dev;
+-		setup_timer(&timer->tl, dev_expire_timer, (long)timer);
++		timer_setup(&timer->tl, dev_expire_timer, 0);
+ 		spin_lock_irq(&dev->lock);
+ 		id = timer->id = dev->next_id++;
+ 		if (dev->next_id < 0)

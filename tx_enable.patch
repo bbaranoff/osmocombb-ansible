@@ -1,0 +1,11 @@
+--- a/target/firmware/Makefile	2018-04-06 13:54:58.695226228 +0200
++++ b/target/firmware/Makefile	2018-04-06 13:58:12.933193943 +0200
+@@ -131,7 +131,7 @@
+ #
+ 
+ # Uncomment this line if you want to enable Tx (Transmit) Support.
+-#CFLAGS += -DCONFIG_TX_ENABLE
++CFLAGS += -DCONFIG_TX_ENABLE
+ 
+ # Uncomment this line if you want to write to flash.
+ #CFLAGS += -DCONFIG_FLASH_WRITE
