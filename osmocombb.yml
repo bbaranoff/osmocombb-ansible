@@ -47,7 +47,6 @@
       - pkg-config
       - make 
       - libmpfr-dev 
-      - libmpfr4
       - libmpc-dev
       - libtalloc-dev
       - libfftw3-dev
