@@ -121,7 +121,7 @@
     shell: update-alternatives --set g++ "/usr/bin/g++-4.9"
 
   - name texinfo
-    shell : apt remove texinfo && cd /root && wget http://ftp.gnu.org/gnu/texinfo/texinfo-4.13.tar.gz &&gzip -dc < texinfo-4.13.tar.gz | tar -xf - && cd texinfo-4.13 && ./configure && make &&make install
+    shell : apt remove texinfo && cd /root && wget http://ftp.gnu.org/gnu/texinfo/texinfo-4.13.tar.gz && gzip -dc < texinfo-4.13.tar.gz | tar -xf - && cd texinfo-4.13 && ./configure && make && make install
 
   - name: gnuarm
     shell: rm -rf /root/gnuarm && cd /root && git clone https://github.com/axilirator/gnu-arm-installer.git gnuarm
