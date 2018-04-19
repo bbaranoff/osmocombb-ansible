@@ -1,5 +1,7 @@
 # osmocom-ansible
 
+work at thursday 19/04/2018
+
 apt dist-upgrade
 
 reboot on the latest linux image 4.15 at this time
