@@ -1,6 +1,6 @@
 # osmocom-ansible
 
-work at thursday 19/04/2018
+work at thursday 2018/04/19
 
 apt dist-upgrade
 
