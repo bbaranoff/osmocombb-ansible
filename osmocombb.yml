@@ -182,7 +182,7 @@
     shell: rm -rf /root/mISDN /root/mISDNuser && rm -Rf /lib/modules/$(uname -r)/kernel/drivers/isdn/hardware/mISDN && rm -Rf /lib/modules/$(uname -r)/kernel/drivers/isdn/mISDN/  && depmod -a && cd /root/ && git clone https://github.com/b1-systems/mISDN/ && git clone https://github.com/b1-systems/mISDNuser/ && cd mISDN && cp /root/osmocombb-ansible/mISDN.patch mISDN.patch && patch -p1 < mISDN.patch &&  aclocal && automake --add-missing && ./configure && cp /root/osmocombb-ansible/mISDN.cfg.default standalone/mISDN.cfg && make modules && make modules_install && depmod -a && cd ../mISDNuser && make && ./configure && make && make install && cd example && make 
 
   - name: lcr
-    shell: rm -rf /root/lcr && cd /root && git clone https://github.com/fairwaves/lcr && cd lcr &&  autoreconf -fi && ./configure --with-sip --with-gsm-bs --with-gsm-ms --enable-gsmhr --with-asterisk && make && make install && ldconfig
+    shell: rm -rf /root/lcr && cd /root && git clone https://github.com/fairwaves/lcr && cd lcr &&  autoreconf -fi && ./configure --with-sip --with-gsm-bs --with-gsm-ms --with-gsmhr --with-asterisk && make && make install && ldconfig
 
   - name: ending
     shell: rm -rf /root/.osmocom && cp /root/lcr/chan_lcr.so /usr/lib/asterisk/modules/ && cp /root/imsi-catcher/directory.list /usr/local/etc/lcr/ && cp /root/imsi-catcher/interface.conf /usr/local/etc/lcr/ && cp /root/imsi-catcher/options.conf /usr/local/etc/lcr/ && cp /root/imsi-catcher/routing.conf /usr/local/etc/lcr/ && mkdir /root/.osmocom && cp /root/imsi-catcher/open-bsc.cfg /root/.osmocom/ && cp /root/imsi-catcher/osmo-bts.cfg /root/.osmocom/ && cp -r /root/imsi-catcher/asterisk /etc/
