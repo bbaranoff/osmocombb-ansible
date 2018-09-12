@@ -21,6 +21,10 @@ uname -r
 
 4.15.0-041500-generic
 
+cd /lib/modules/4.15.0-041500-generic/
+
+ln -s /usr/src/linux-headers-4.15.0-041500 source
+
 apt install openssh-server ansible
 
 cd /root
