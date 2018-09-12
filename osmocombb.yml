@@ -56,16 +56,14 @@
       - osmocom-nitb
       - libxml2-dev
       - automake
-      - linux-headers-4.15.0-kali2-all-amd64
       - alsa-oss
+      - gcc-7
+      - g++-7
       - zlibc
       - libgmp3-dev
       - flex 
       - bison 
-      - libncurses5-dbg
-      - libncurses5-dev 
-      - libncursesw5-dbg
-      - libncursesw5-dev
+      - libncurses6-dbg
       - libtool-bin
       - libsofia-sip-ua-dev
       - sofia-sip-bin
