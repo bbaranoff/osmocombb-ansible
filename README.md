@@ -4,7 +4,21 @@ work at thursday 2018/04/19
 
 apt dist-upgrade
 
-reboot on the latest linux image 4.15 at this time
+wget http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.15/linux-headers-4.15.0-041500_4.15.0-041500.201802011154_all.deb
+
+wget http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.15/linux-headers-4.15.0-041500-generic_4.15.0-041500.201802011154_amd64.deb
+
+wget http://kernel.ubuntu.com/~kernel-ppa/mainline/v4.15/linux-image-4.15.0-041500-generic_4.15.0-041500.201802011154_amd64.deb
+
+dpkg -i *.deb
+
+update-grub
+
+reboot on linux image 4.15 (in advanced options)
+Check if new Kernel has been installed with command:
+
+# uname -r
+4.15.0-041500-generic
 
 apt install openssh-server ansible
 
