@@ -18,6 +18,7 @@ reboot on linux image 4.15 (in advanced options)
 Check if new Kernel has been installed with command:
 
 uname -r
+
 4.15.0-041500-generic
 
 apt install openssh-server ansible
