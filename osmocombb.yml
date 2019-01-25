@@ -177,7 +177,7 @@
     shell: rm -rf /root/opencore-amr && cd /root && git clone https://github.com/VFR-maniac/opencore-amr && cd opencore-amr && autoreconf -i && ./configure && make && make install && ldconfig
  
   - name: mISDN
-    shell: rm -rf /root/mISDN /root/mISDNuser && rm -Rf /lib/modules/$(uname -r)/kernel/drivers/isdn/hardware/mISDN && rm -Rf /lib/modules/$(uname -r)/kernel/drivers/isdn/mISDN/  && depmod -a && cd /root/ && git clone https://github.com/b1-systems/mISDN/ && git clone https://github.com/b1-systems/mISDNuser/ && cd mISDN && cp /root/osmocombb-ansible/mISDN.patch mISDN.patch && patch -p1 < mISDN.patch &&  aclocal && automake --add-missing && ./configure && cp /root/osmocombb-ansible/mISDN.cfg.default standalone/mISDN.cfg && make modules && make modules_install && depmod -a && cd ../mISDNuser && make && ./configure && make && make install && cd example && make 
+    shell: rm -rf /root/mISDN /root/mISDNuser && rm -Rf /lib/modules/$(uname -r)/kernel/drivers/isdn/hardware/mISDN && rm -Rf /lib/modules/$(uname -r)/kernel/drivers/isdn/mISDN/  && depmod -a && cd /root/ && git clone https://github.com/b1-systems/mISDN/ && git clone https://github.com/b1-systems/mISDNuser/ && cd mISDN && cp /root/osmocombb-ansible/mISDN.patch mISDN.patch &&  aclocal && automake --add-missing && ./configure && cp /root/osmocombb-ansible/mISDN.cfg.default standalone/mISDN.cfg && make modules && make modules_install && depmod -a && cd ../mISDNuser && make && ./configure && make && make install && cd example && make 
 
   - name: lcr
     shell: rm -rf /root/lcr && cd /root && git clone https://github.com/fairwaves/lcr && cd lcr &&  autoreconf -fi && ./configure --with-sip --with-gsm-bs --with-gsm-ms --with-gsmhr --with-asterisk && make && make install && ldconfig
